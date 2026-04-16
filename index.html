@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商场集章打卡活动</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🏪 商场集章打卡</h1>
+            <p>打卡6家店铺，赢取大奖！</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 用户状态卡片 -->
+            <div class="user-card">
+                <div class="user-info">
+                    <span class="user-icon">👤</span>
+                    <span id="userName">游客</span>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span>已打卡店铺</span>
+                        <span class="progress-count"><span id="checkedCount">0</span>/6</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <p class="reward-status" id="rewardStatus">还需打卡 6 家店铺即可兑换大奖</p>
+                </div>
+            </div>
+
+            <!-- 打卡按钮 -->
+            <div class="action-section">
+                <button class="btn-primary" id="checkInBtn" onclick="openCheckInModal()">
+                    📸 立即打卡
+                </button>
+                <button class="btn-secondary" id="claimRewardBtn" onclick="claimReward()" disabled>
+                    🎁 兑换大奖
+                </button>
+            </div>
+
+            <!-- 店铺列表 -->
+            <div class="shops-section">
+                <h2>参与店铺</h2>
+                <div class="shops-grid" id="shopsGrid">
+                    <!-- 店铺卡片由JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 我的打卡记录 -->
+            <div class="records-section">
+                <h2>我的打卡记录</h2>
+                <div class="records-list" id="recordsList">
+                    <p class="empty-text">暂无打卡记录</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 打卡弹窗 -->
+        <div class="modal" id="checkInModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📸 店铺打卡</h3>
+                    <button class="close-btn" onclick="closeCheckInModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>选择店铺</label>
+                        <select id="shopSelect">
+                            <option value="">请选择要打卡的店铺</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>拍照上传</label>
+                        <div class="upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click()">
+                            <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
+                            <div class="upload-placeholder" id="uploadPlaceholder">
+                                <span class="upload-icon">📷</span>
+                                <p>点击拍照或选择图片</p>
+                                <p class="upload-hint">支持现场拍照或相册选择</p>
+                            </div>
+                            <img id="previewImage" class="preview-image" style="display: none;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>备注（可选）</label>
+                        <textarea id="checkInNote" placeholder="写下你的打卡心得..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeCheckInModal()">取消</button>
+                    <button class="btn-primary" onclick="submitCheckIn()">确认打卡</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 兑换大奖弹窗 -->
+        <div class="modal" id="rewardModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🎁 兑换大奖</h3>
+                    <button class="close-btn" onclick="closeRewardModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="reward-success">
+                        <div class="reward-icon">🎉</div>
+                        <h4>恭喜您！</h4>
+                        <p>您已成功打卡6家店铺，获得兑换大奖资格！</p>
+                        <div class="reward-code">
+                            <label>您的兑换码</label>
+                            <div class="code-display" id="rewardCode"></div>
+                            <p class="code-hint">请向工作人员出示此兑换码</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-primary" onclick="closeRewardModal()">确定</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 后台管理入口 -->
+        <footer class="footer">
+            <a href="admin.html" class="admin-link">🔐 后台管理</a>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

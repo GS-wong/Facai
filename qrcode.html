@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫码参与集章打卡</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .poster {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 32px;
+        }
+        
+        .qr-container {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        #qrcode {
+            display: flex;
+            justify-content: center;
+        }
+        
+        #qrcode img {
+            border-radius: 8px;
+        }
+        
+        .hint {
+            font-size: 14px;
+            color: #999;
+            margin-top: 16px;
+        }
+        
+        .rewards {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px dashed #e0e0e0;
+        }
+        
+        .reward-item {
+            text-align: center;
+        }
+        
+        .reward-icon {
+            font-size: 32px;
+            margin-bottom: 4px;
+        }
+        
+        .reward-text {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .url-input {
+            margin-top: 24px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+        
+        .print-btn {
+            margin-top: 16px;
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .print-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            .poster {
+                box-shadow: none;
+            }
+            .print-btn, .url-input {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="poster">
+        <div class="logo">🏪</div>
+        <h1 class="title">商场集章打卡</h1>
+        <p class="subtitle">打卡6家店铺，赢取神秘大奖！</p>
+        
+        <div class="qr-container">
+            <div id="qrcode"></div>
+            <p class="hint">微信扫码即可参与</p>
+        </div>
+        
+        <div class="rewards">
+            <div class="reward-item">
+                <div class="reward-icon">📸</div>
+                <div class="reward-text">拍照打卡</div>
+            </div>
+            <div class="reward-item">
+                <div class="reward-icon">🏪</div>
+                <div class="reward-text">6家店铺</div>
+            </div>
+            <div class="reward-item">
+                <div class="reward-icon">🎁</div>
+                <div class="reward-text">兑换大奖</div>
+            </div>
+        </div>
+        
+        <div class="url-input" id="urlDisplay"></div>
+        <button class="print-btn" onclick="window.print()">🖨️ 打印海报</button>
+    </div>
+
+    <script>
+        // 配置页面URL - 部署时修改为实际地址
+        const PAGE_URL = window.location.href.replace('qrcode.html', 'index.html');
+        
+        // 生成二维码
+        new QRCode(document.getElementById("qrcode"), {
+            text: PAGE_URL,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        
+        // 显示URL
+        document.getElementById('urlDisplay').textContent = PAGE_URL;
+    </script>
+</body>
+</html>

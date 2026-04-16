@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理 - 商场集章打卡</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 登录页面 -->
+        <div id="loginPage" class="login-container">
+            <div class="login-box">
+                <h1>🔐 后台管理</h1>
+                <p>商场集章打卡活动管理系统</p>
+                <form class="login-form" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>管理员密码</label>
+                        <input type="password" id="adminPassword" placeholder="请输入密码" required>
+                    </div>
+                    <button type="submit" class="btn-primary">登录</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 管理后台 -->
+        <div id="adminPage" style="display: none;">
+            <header class="admin-header">
+                <h1>📊 活动数据看板</h1>
+                <div>
+                    <a href="index.html" class="back-link">← 返回活动页面</a>
+                    <button class="btn-icon" onclick="logout()" title="退出登录" style="margin-left: 10px;">🚪</button>
+                </div>
+            </header>
+
+            <!-- 统计卡片 -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalUsers">0</div>
+                    <div class="stat-label">参与用户</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalCheckins">0</div>
+                    <div class="stat-label">总打卡数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statRewardClaimed">0</div>
+                    <div class="stat-label">已兑奖</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statCompletionRate">0%</div>
+                    <div class="stat-label">完成率</div>
+                </div>
+            </div>
+
+            <!-- 打卡审核 -->
+            <div class="admin-section">
+                <h2>📝 打卡审核</h2>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" onclick="filterCheckins('all')">全部</button>
+                    <button class="filter-tab" onclick="filterCheckins('pending')">待审核</button>
+                    <button class="filter-tab" onclick="filterCheckins('approved')">已通过</button>
+                </div>
+                <div id="checkinList">
+                    <p class="empty-text">暂无打卡记录</p>
+                </div>
+            </div>
+
+            <!-- 店铺管理 -->
+            <div class="admin-section">
+                <h2>🏪 店铺管理</h2>
+                <div class="shop-list" id="shopList">
+                    <!-- 店铺列表由JS生成 -->
+                </div>
+                <div class="add-shop-form">
+                    <input type="text" id="newShopName" placeholder="输入新店铺名称">
+                    <button class="btn-primary" onclick="addShop()">添加</button>
+                </div>
+            </div>
+
+            <!-- 活动设置 -->
+            <div class="admin-section">
+                <h2>⚙️ 活动设置</h2>
+                <div class="form-group">
+                    <label>活动名称</label>
+                    <input type="text" id="activityName" placeholder="活动名称">
+                </div>
+                <div class="form-group">
+                    <label>活动描述</label>
+                    <textarea id="activityDesc" placeholder="活动描述"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>兑奖所需店铺数</label>
+                    <input type="number" id="minShops" min="1" max="20" value="6">
+                </div>
+                <button class="btn-primary" onclick="saveActivitySettings()">保存设置</button>
+            </div>
+
+            <!-- 用户数据 -->
+            <div class="admin-section">
+                <h2>👥 用户数据</h2>
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>用户</th>
+                                <th>打卡数</th>
+                                <th>状态</th>
+                                <th>注册时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <!-- 用户数据由JS生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 导出数据 -->
+            <div class="admin-section">
+                <h2>📥 数据导出</h2>
+                <div class="action-section">
+                    <button class="btn-secondary" onclick="exportData('checkins')">导出打卡记录</button>
+                    <button class="btn-secondary" onclick="exportData('rewards')">导出兑奖记录</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片预览模态框 -->
+    <div class="modal image-modal" id="imageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>打卡照片</h3>
+                <button class="close-btn" onclick="closeImageModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img id="modalImage" src="" alt="打卡照片" style="width: 100%; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 管理员密码（实际应用中应该使用后端验证）
+        const ADMIN_PASSWORD = 'admin123';
+        
+        // 存储键名
+        const STORAGE_KEYS = {
+            SHOPS: 'stamp_shops',
+            CHECKINS: 'stamp_checkins',
+            USER: 'stamp_user',
+            REWARDS: 'stamp_rewards',
+            ACTIVITY: 'stamp_activity',
+            ADMIN_LOGGED_IN: 'stamp_admin_logged_in'
+        };
+
+        // 检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem(STORAGE_KEYS.ADMIN_LOGGED_IN) === 'true') {
+                showAdminPage();
+            }
+        });
+
+        // 登录处理
+        function handleLogin(e) {
+            e.preventDefault();
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password === ADMIN_PASSWORD) {
+                localStorage.setItem(STORAGE_KEYS.ADMIN_LOGGED_IN, 'true');
+                showAdminPage();
+            } else {
+                alert('密码错误，请重试');
+            }
+        }
+
+        // 显示管理页面
+        function showAdminPage() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('adminPage').style.display = 'block';
+            loadAllData();
+        }
+
+        // 加载所有数据
+        function loadAllData() {
+            updateStats();
+            renderCheckinList('all');
+            renderShopList();
+            loadActivitySettings();
+            renderUserTable();
+        }
+
+        // 获取数据
+        function getData(key) {
+            return JSON.parse(localStorage.getItem(key) || '[]');
+        }
+
+        function getObject(key) {
+            return JSON.parse(localStorage.getItem(key) || '{}');
+        }
+
+        // 更新统计数据
+        function updateStats() {
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const rewards = getData(STORAGE_KEYS.REWARDS);
+            const activity = getObject(STORAGE_KEYS.ACTIVITY);
+            
+            // 统计独立用户数
+            const userIds = [...new Set(checkins.map(c => c.userId))];
+            const totalUsers = userIds.length || 1; // 至少1个（当前用户）
+            
+            // 统计完成率（打卡>=6家的用户比例）
+            const minShops = activity.minShopsForReward || 6;
+            const completedUsers = userIds.filter(userId => {
+                const userCheckins = checkins.filter(c => c.userId === userId);
+                const uniqueShops = [...new Set(userCheckins.map(c => c.shopId))];
+                return uniqueShops.length >= minShops;
+            }).length;
+            const completionRate = totalUsers > 0 ? Math.round((completedUsers / totalUsers) * 100) : 0;
+            
+            document.getElementById('statTotalUsers').textContent = totalUsers;
+            document.getElementById('statTotalCheckins').textContent = checkins.length;
+            document.getElementById('statRewardClaimed').textContent = rewards.length;
+            document.getElementById('statCompletionRate').textContent = completionRate + '%';
+        }
+
+        // 当前筛选状态
+        let currentFilter = 'all';
+
+        // 筛选打卡记录
+        function filterCheckins(filter) {
+            currentFilter = filter;
+            
+            // 更新标签样式
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderCheckinList(filter);
+        }
+
+        // 渲染打卡列表
+        function renderCheckinList(filter = 'all') {
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const shops = getData(STORAGE_KEYS.SHOPS);
+            const listContainer = document.getElementById('checkinList');
+            
+            let filteredCheckins = checkins;
+            if (filter === 'pending') {
+                filteredCheckins = checkins.filter(c => c.status === 'pending');
+            } else if (filter === 'approved') {
+                filteredCheckins = checkins.filter(c => c.status === 'approved');
+            }
+            
+            // 按时间倒序
+            filteredCheckins.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            if (filteredCheckins.length === 0) {
+                listContainer.innerHTML = '<p class="empty-text">暂无打卡记录</p>';
+                return;
+            }
+            
+            listContainer.innerHTML = filteredCheckins.map(checkin => {
+                const shop = shops.find(s => s.id === checkin.shopId);
+                const date = new Date(checkin.timestamp);
+                const timeStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                
+                const statusBadge = checkin.status === 'approved' 
+                    ? '<span class="badge badge-success">已通过</span>'
+                    : '<span class="badge badge-pending">待审核</span>';
+                
+                const actionButtons = checkin.status === 'pending'
+                    ? `<button class="btn-icon" onclick="approveCheckin('${checkin.id}')" title="通过">✓</button>
+                       <button class="btn-icon" onclick="rejectCheckin('${checkin.id}')" title="拒绝">✗</button>`
+                    : '';
+                
+                return `
+                    <div class="record-item">
+                        <img src="${checkin.photo}" alt="打卡照片" class="record-image" onclick="viewImage('${checkin.photo}')">
+                        <div class="record-info">
+                            <div class="record-shop">${shop ? shop.name : '未知店铺'} ${statusBadge}</div>
+                            <div class="record-time">${timeStr} · 用户${checkin.userId.slice(-4)}</div>
+                            ${checkin.note ? `<div class="record-note">${checkin.note}</div>` : ''}
+                        </div>
+                        <div class="shop-item-actions">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem(STORAGE_KEYS.ADMIN_LOGGED_IN);
+            location.reload();
+        }
+
+        // 审核通过
+        function approveCheckin(checkinId) {
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const checkin = checkins.find(c => c.id === checkinId);
+            if (checkin) {
+                checkin.status = 'approved';
+                localStorage.setItem(STORAGE_KEYS.CHECKINS, JSON.stringify(checkins));
+                renderCheckinList(currentFilter);
+                updateStats();
+            }
+        }
+
+        // 审核拒绝
+        function rejectCheckin(checkinId) {
+            if (!confirm('确定要拒绝这条打卡记录吗？')) return;
+            
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const index = checkins.findIndex(c => c.id === checkinId);
+            if (index > -1) {
+                checkins.splice(index, 1);
+                localStorage.setItem(STORAGE_KEYS.CHECKINS, JSON.stringify(checkins));
+                renderCheckinList(currentFilter);
+                updateStats();
+            }
+        }
+
+        // 渲染店铺列表
+        function renderShopList() {
+            const shops = getData(STORAGE_KEYS.SHOPS);
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const listContainer = document.getElementById('shopList');
+            
+            listContainer.innerHTML = shops.map(shop => {
+                const checkinCount = checkins.filter(c => c.shopId === shop.id).length;
+                return `
+                    <div class="shop-item">
+                        <span class="shop-item-icon">${shop.icon}</span>
+                        <div class="shop-item-info">
+                            <div class="shop-item-name">${shop.name}</div>
+                            <div class="shop-item-count">已打卡 ${checkinCount} 次</div>
+                        </div>
+                        <div class="shop-item-actions">
+                            <button class="btn-icon" onclick="editShop('${shop.id}')" title="编辑">✏️</button>
+                            <button class="btn-icon" onclick="deleteShop('${shop.id}')" title="删除">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 添加店铺
+        function addShop() {
+            const nameInput = document.getElementById('newShopName');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert('请输入店铺名称');
+                return;
+            }
+            
+            const shops = getData(STORAGE_KEYS.SHOPS);
+            const icons = ['☕', '👕', '📱', '🍲', '🧱', '📚', '💎', '⚡', '🎁', '🍰', '🍔', '👟'];
+            const newShop = {
+                id: 'shop_' + Date.now(),
+                name: name,
+                icon: icons[shops.length % icons.length],
+                checked: false
+            };
+            
+            shops.push(newShop);
+            localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(shops));
+            
+            nameInput.value = '';
+            renderShopList();
+            updateStats();
+        }
+
+        // 编辑店铺
+        function editShop(shopId) {
+            const shops = getData(STORAGE_KEYS.SHOPS);
+            const shop = shops.find(s => s.id === shopId);
+            if (!shop) return;
+            
+            const newName = prompt('修改店铺名称:', shop.name);
+            if (newName && newName.trim()) {
+                shop.name = newName.trim();
+                localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(shops));
+                renderShopList();
+            }
+        }
+
+        // 删除店铺
+        function deleteShop(shopId) {
+            if (!confirm('确定要删除这家店铺吗？相关的打卡记录也会被删除。')) return;
+            
+            let shops = getData(STORAGE_KEYS.SHOPS);
+            shops = shops.filter(s => s.id !== shopId);
+            localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(shops));
+            
+            // 删除相关打卡记录
+            let checkins = getData(STORAGE_KEYS.CHECKINS);
+            checkins = checkins.filter(c => c.shopId !== shopId);
+            localStorage.setItem(STORAGE_KEYS.CHECKINS, JSON.stringify(checkins));
+            
+            renderShopList();
+            renderCheckinList(currentFilter);
+            updateStats();
+        }
+
+        // 加载活动设置
+        function loadActivitySettings() {
+            const activity = getObject(STORAGE_KEYS.ACTIVITY);
+            document.getElementById('activityName').value = activity.name || '';
+            document.getElementById('activityDesc').value = activity.description || '';
+            document.getElementById('minShops').value = activity.minShopsForReward || 6;
+        }
+
+        // 保存活动设置
+        function saveActivitySettings() {
+            const activity = {
+                name: document.getElementById('activityName').value,
+                description: document.getElementById('activityDesc').value,
+                minShopsForReward: parseInt(document.getElementById('minShops').value) || 6,
+                updatedAt: new Date().toISOString()
+            };
+            
+            localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(activity));
+            alert('设置已保存');
+        }
+
+        // 渲染用户表格
+        function renderUserTable() {
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const rewards = getData(STORAGE_KEYS.REWARDS);
+            const activity = getObject(STORAGE_KEYS.ACTIVITY);
+            const minShops = activity.minShopsForReward || 6;
+            
+            // 按用户分组统计
+            const userMap = {};
+            checkins.forEach(c => {
+                if (!userMap[c.userId]) {
+                    userMap[c.userId] = {
+                        userId: c.userId,
+                        checkins: [],
+                        uniqueShops: new Set()
+                    };
+                }
+                userMap[c.userId].checkins.push(c);
+                userMap[c.userId].uniqueShops.add(c.shopId);
+            });
+            
+            const tbody = document.getElementById('userTableBody');
+            const users = Object.values(userMap).sort((a, b) => b.checkins.length - a.checkins.length);
+            
+            tbody.innerHTML = users.map(user => {
+                const shopCount = user.uniqueShops.size;
+                const hasReward = rewards.some(r => r.userId === user.userId);
+                const status = hasReward 
+                    ? '<span class="badge badge-success">已兑奖</span>'
+                    : shopCount >= minShops 
+                        ? '<span class="badge badge-pending">可兑奖</span>'
+                        : '<span class="badge">进行中</span>';
+                
+                const firstCheckin = user.checkins[0];
+                const joinDate = firstCheckin ? new Date(firstCheckin.timestamp).toLocaleDateString() : '-';
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar">${user.userId.slice(-2).toUpperCase()}</div>
+                                <span>用户${user.userId.slice(-4)}</span>
+                            </div>
+                        </td>
+                        <td>${shopCount}</td>
+                        <td>${status}</td>
+                        <td>${joinDate}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 查看图片
+        function viewImage(src) {
+            document.getElementById('modalImage').src = src;
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        // 关闭图片模态框
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.remove('active');
+        }
+
+        // 导出数据
+        function exportData(type) {
+            let data, filename;
+            
+            if (type === 'checkins') {
+                data = getData(STORAGE_KEYS.CHECKINS);
+                filename = '打卡记录_' + new Date().toLocaleDateString() + '.json';
+            } else if (type === 'rewards') {
+                data = getData(STORAGE_KEYS.REWARDS);
+                filename = '兑奖记录_' + new Date().toLocaleDateString() + '.json';
+            }
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>
