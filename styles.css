@@ -541,6 +541,10 @@ body {
 .footer {
     text-align: center;
     padding: 20px 0;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 .admin-link {

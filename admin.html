@@ -78,6 +78,24 @@
                 </div>
             </div>
 
+            <!-- 主题色彩设置 -->
+            <div class="admin-section">
+                <h2>🎨 主题色彩设置</h2>
+                <div class="form-group">
+                    <label>主题色</label>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+                        <button onclick="selectTheme('red')" class="theme-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #ff6b6b; background: #ff6b6b; cursor: pointer;"></button>
+                        <button onclick="selectTheme('blue')" class="theme-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #e0e0e0; background: #4a90d9; cursor: pointer;"></button>
+                        <button onclick="selectTheme('green')" class="theme-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #e0e0e0; background: #52c41a; cursor: pointer;"></button>
+                        <button onclick="selectTheme('purple')" class="theme-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #e0e0e0; background: #722ed1; cursor: pointer;"></button>
+                        <button onclick="selectTheme('orange')" class="theme-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #e0e0e0; background: #fa8c16; cursor: pointer;"></button>
+                        <button onclick="selectTheme('pink')" class="theme-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #e0e0e0; background: #eb2f96; cursor: pointer;"></button>
+                    </div>
+                    <input type="color" id="customColor" onchange="selectCustomTheme(this.value)" style="width: 100%; height: 50px; border-radius: 12px; border: 2px solid var(--border-color);">
+                </div>
+                <button class="btn-primary" onclick="saveThemeSettings()">保存主题</button>
+            </div>
+
             <!-- 活动设置 -->
             <div class="admin-section">
                 <h2>⚙️ 活动设置</h2>
@@ -151,7 +169,8 @@
             USER: 'stamp_user',
             REWARDS: 'stamp_rewards',
             ACTIVITY: 'stamp_activity',
-            ADMIN_LOGGED_IN: 'stamp_admin_logged_in'
+            ADMIN_LOGGED_IN: 'stamp_admin_logged_in',
+            THEME: 'stamp_theme'
         };
 
         // 检查登录状态
@@ -333,18 +352,63 @@
                 const checkinCount = checkins.filter(c => c.shopId === shop.id).length;
                 return `
                     <div class="shop-item">
-                        <span class="shop-item-icon">${shop.icon}</span>
+                        <span class="shop-item-icon" style="cursor: pointer;" onclick="changeShopIcon('${shop.id}')" title="点击修改图标">${shop.icon}</span>
                         <div class="shop-item-info">
                             <div class="shop-item-name">${shop.name}</div>
                             <div class="shop-item-count">已打卡 ${checkinCount} 次</div>
                         </div>
                         <div class="shop-item-actions">
+                            <button class="btn-icon" onclick="changeShopIcon('${shop.id}')" title="修改图标">🎨</button>
                             <button class="btn-icon" onclick="editShop('${shop.id}')" title="编辑">✏️</button>
                             <button class="btn-icon" onclick="deleteShop('${shop.id}')" title="删除">🗑️</button>
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        // 修改店铺图标
+        function changeShopIcon(shopId) {
+            const shops = getData(STORAGE_KEYS.SHOPS);
+            const shop = shops.find(s => s.id === shopId);
+            if (!shop) return;
+            
+            const icons = ['☕', '👕', '📱', '🍲', '🧱', '📚', '💎', '⚡', '🎁', '🍰', '🍔', '👟', '🎮', '🧸', '💄', '👜', '🕶️', '⌚', '📷', '🎧', '🎹', '🎨', '🏀', '⚽', '🎾', '🏊', '🚴', '🏋️', '🧘', '💇', '💅', '🔧', '💊', '🏥', '🏦', '🏪'];
+            
+            let iconGrid = icons.map((icon, index) => 
+                `<button onclick="selectShopIcon('${shopId}', '${icon}')" style="font-size: 24px; padding: 10px; margin: 5px; border: 2px solid ${shop.icon === icon ? '#ff6b6b' : '#e0e0e0'}; border-radius: 8px; background: ${shop.icon === icon ? '#fff5f5' : 'white'}; cursor: pointer;">${icon}</button>`
+            ).join('');
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.id = 'iconModal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h3>选择店铺图标</h3>
+                        <button class="close-btn" onclick="document.getElementById('iconModal').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 16px;">当前图标: <span style="font-size: 32px;">${shop.icon}</span></p>
+                        <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+                            ${iconGrid}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // 选择图标
+        function selectShopIcon(shopId, icon) {
+            const shops = getData(STORAGE_KEYS.SHOPS);
+            const shop = shops.find(s => s.id === shopId);
+            if (shop) {
+                shop.icon = icon;
+                localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(shops));
+                renderShopList();
+                document.getElementById('iconModal').remove();
+            }
         }
 
         // 添加店铺
@@ -406,12 +470,84 @@
             updateStats();
         }
 
+        // 主题配置
+        const THEMES = {
+            red: { primary: '#ff6b6b', primaryDark: '#ee5a5a', secondary: '#4ecdc4' },
+            blue: { primary: '#4a90d9', primaryDark: '#357abd', secondary: '#5ac8fa' },
+            green: { primary: '#52c41a', primaryDark: '#389e0d', secondary: '#95de64' },
+            purple: { primary: '#722ed1', primaryDark: '#531dab', secondary: '#b37feb' },
+            orange: { primary: '#fa8c16', primaryDark: '#d46b08', secondary: '#ffc53d' },
+            pink: { primary: '#eb2f96', primaryDark: '#c41d7f', secondary: '#ff85c0' }
+        };
+
+        // 加载主题设置
+        function loadThemeSettings() {
+            const theme = getObject(STORAGE_KEYS.THEME);
+            if (theme && theme.primary) {
+                applyTheme(theme);
+            }
+        }
+
+        // 应用主题
+        function applyTheme(theme) {
+            document.documentElement.style.setProperty('--primary-color', theme.primary);
+            document.documentElement.style.setProperty('--primary-dark', theme.primaryDark);
+            document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+        }
+
+        // 选择预设主题
+        function selectTheme(themeName) {
+            const theme = THEMES[themeName];
+            if (theme) {
+                applyTheme(theme);
+                // 更新按钮选中状态
+                document.querySelectorAll('.theme-btn').forEach(btn => {
+                    btn.style.borderColor = '#e0e0e0';
+                });
+                event.target.style.borderColor = theme.primary;
+            }
+        }
+
+        // 选择自定义颜色
+        function selectCustomTheme(color) {
+            const theme = {
+                primary: color,
+                primaryDark: adjustColor(color, -20),
+                secondary: adjustColor(color, 30)
+            };
+            applyTheme(theme);
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.style.borderColor = '#e0e0e0';
+            });
+        }
+
+        // 调整颜色亮度
+        function adjustColor(color, amount) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+            const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.min(255, Math.max(0, (num & 0x00FF) + amount));
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+        }
+
+        // 保存主题设置
+        function saveThemeSettings() {
+            const theme = {
+                primary: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(),
+                primaryDark: getComputedStyle(document.documentElement).getPropertyValue('--primary-dark').trim(),
+                secondary: getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim()
+            };
+            localStorage.setItem(STORAGE_KEYS.THEME, JSON.stringify(theme));
+            alert('主题已保存');
+        }
+
         // 加载活动设置
         function loadActivitySettings() {
             const activity = getObject(STORAGE_KEYS.ACTIVITY);
             document.getElementById('activityName').value = activity.name || '';
             document.getElementById('activityDesc').value = activity.description || '';
             document.getElementById('minShops').value = activity.minShopsForReward || 6;
+            loadThemeSettings();
         }
 
         // 保存活动设置

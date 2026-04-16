@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商铺管理 - 商场集章打卡</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .shop-login-box {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .shop-selector {
+            margin-bottom: 20px;
+        }
+        
+        .shop-selector select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+        }
+        
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-box-number {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .stat-box-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+        
+        .checkin-item {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-color);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .checkin-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        
+        .checkin-info {
+            flex: 1;
+        }
+        
+        .checkin-user {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .checkin-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .checkin-note {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .checkin-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-approve {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-reject {
+            background: #ff4d4f;
+            color: white;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-approved {
+            background: #e8f5e9;
+            color: var(--success-color);
+        }
+        
+        .status-pending {
+            background: #fff3e0;
+            color: var(--warning-color);
+        }
+        
+        .status-rejected {
+            background: #ffebee;
+            color: #ff4d4f;
+        }
+        
+        .date-filter {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .date-filter input {
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .chart-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .hourly-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 150px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+        
+        .hour-bar {
+            flex: 1;
+            background: linear-gradient(to top, var(--primary-color), var(--secondary-color));
+            border-radius: 4px 4px 0 0;
+            min-height: 4px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .hour-bar:hover {
+            opacity: 0.8;
+        }
+        
+        .hour-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+        
+        .hour-value {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 登录页面 -->
+        <div id="shopLoginPage" class="login-container">
+            <div class="login-box shop-login-box">
+                <h1>🏪 商铺管理</h1>
+                <p>审核打卡、查看统计数据</p>
+                <form class="login-form" onsubmit="handleShopLogin(event)">
+                    <div class="form-group shop-selector">
+                        <label>选择店铺</label>
+                        <select id="shopSelectLogin" required>
+                            <option value="">请选择您的店铺</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>店铺密码</label>
+                        <input type="password" id="shopPassword" placeholder="请输入店铺密码" required>
+                    </div>
+                    <button type="submit" class="btn-primary">登录</button>
+                </form>
+                <p style="margin-top: 20px; font-size: 13px; color: var(--text-muted);">
+                    默认密码: shop123
+                </p>
+            </div>
+        </div>
+
+        <!-- 商铺管理页面 -->
+        <div id="shopManagePage" style="display: none;">
+            <header class="admin-header">
+                <h1 id="shopHeaderTitle">🏪 店铺管理</h1>
+                <div>
+                    <a href="index.html" class="back-link">← 返回活动</a>
+                    <button class="btn-icon" onclick="shopLogout()" title="退出" style="margin-left: 10px;">🚪</button>
+                </div>
+            </header>
+
+            <!-- 统计概览 -->
+            <div class="stats-overview">
+                <div class="stat-box">
+                    <div class="stat-box-number" id="statToday">0</div>
+                    <div class="stat-box-label">今日打卡</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-number" id="statTotal">0</div>
+                    <div class="stat-box-label">累计打卡</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-number" id="statPending">0</div>
+                    <div class="stat-box-label">待审核</div>
+                </div>
+            </div>
+
+            <!-- 时段统计图表 -->
+            <div class="chart-container">
+                <div class="chart-title">📊 今日打卡时段分布</div>
+                <div class="hourly-chart" id="hourlyChart">
+                    <!-- 由JS生成 -->
+                </div>
+            </div>
+
+            <!-- 打卡审核 -->
+            <div class="admin-section">
+                <h2>📝 打卡审核</h2>
+                <div class="date-filter">
+                    <input type="date" id="filterDate" onchange="loadShopCheckins()">
+                    <button class="btn-secondary" onclick="loadShopCheckins()">刷新</button>
+                </div>
+                <div id="shopCheckinList">
+                    <p class="empty-text">暂无打卡记录</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片预览模态框 -->
+    <div class="modal image-modal" id="imageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>打卡照片</h3>
+                <button class="close-btn" onclick="closeImageModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img id="modalImage" src="" alt="打卡照片" style="width: 100%; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEYS = {
+            SHOPS: 'stamp_shops',
+            CHECKINS: 'stamp_checkins',
+            SHOP_LOGGED_IN: 'stamp_shop_logged_in',
+            CURRENT_SHOP: 'stamp_current_shop',
+            THEME: 'stamp_theme'
+        };
+
+        // 加载主题
+        function loadTheme() {
+            const theme = JSON.parse(localStorage.getItem(STORAGE_KEYS.THEME) || '{}');
+            if (theme.primary) {
+                document.documentElement.style.setProperty('--primary-color', theme.primary);
+                document.documentElement.style.setProperty('--primary-dark', theme.primaryDark);
+                document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+            }
+        }
+
+        // 获取数据
+        function getData(key) {
+            return JSON.parse(localStorage.getItem(key) || '[]');
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTheme();
+            loadShopOptions();
+            
+            // 检查登录状态
+            const loggedInShop = localStorage.getItem(STORAGE_KEYS.CURRENT_SHOP);
+            if (loggedInShop) {
+                showShopManagePage(JSON.parse(loggedInShop));
+            }
+            
+            // 设置默认日期为今天
+            document.getElementById('filterDate').valueAsDate = new Date();
+        });
+
+        // 加载店铺选项
+        function loadShopOptions() {
+            const shops = getData(STORAGE_KEYS.SHOPS);
+            const select = document.getElementById('shopSelectLogin');
+            select.innerHTML = '<option value="">请选择您的店铺</option>' +
+                shops.map(shop => `<option value="${shop.id}">${shop.icon} ${shop.name}</option>`).join('');
+        }
+
+        // 商铺登录
+        function handleShopLogin(e) {
+            e.preventDefault();
+            const shopId = document.getElementById('shopSelectLogin').value;
+            const password = document.getElementById('shopPassword').value;
+            
+            if (!shopId) {
+                alert('请选择店铺');
+                return;
+            }
+            
+            // 验证密码（默认 shop123）
+            if (password !== 'shop123') {
+                alert('密码错误');
+                return;
+            }
+            
+            const shops = getData(STORAGE_KEYS.SHOPS);
+            const shop = shops.find(s => s.id === shopId);
+            
+            if (shop) {
+                localStorage.setItem(STORAGE_KEYS.CURRENT_SHOP, JSON.stringify(shop));
+                showShopManagePage(shop);
+            }
+        }
+
+        // 显示管理页面
+        function showShopManagePage(shop) {
+            document.getElementById('shopLoginPage').style.display = 'none';
+            document.getElementById('shopManagePage').style.display = 'block';
+            document.getElementById('shopHeaderTitle').textContent = `${shop.icon} ${shop.name} - 店铺管理`;
+            
+            updateShopStats();
+            loadShopCheckins();
+            renderHourlyChart();
+        }
+
+        // 更新统计数据
+        function updateShopStats() {
+            const currentShop = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_SHOP));
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            
+            // 今日打卡
+            const today = new Date().toDateString();
+            const todayCheckins = checkins.filter(c => {
+                const checkinDate = new Date(c.timestamp).toDateString();
+                return c.shopId === currentShop.id && checkinDate === today;
+            });
+            
+            // 累计打卡
+            const totalCheckins = checkins.filter(c => c.shopId === currentShop.id);
+            
+            // 待审核
+            const pendingCheckins = totalCheckins.filter(c => c.status === 'pending');
+            
+            document.getElementById('statToday').textContent = todayCheckins.length;
+            document.getElementById('statTotal').textContent = totalCheckins.length;
+            document.getElementById('statPending').textContent = pendingCheckins.length;
+        }
+
+        // 加载店铺打卡记录
+        function loadShopCheckins() {
+            const currentShop = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_SHOP));
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const filterDate = document.getElementById('filterDate').value;
+            
+            let shopCheckins = checkins.filter(c => c.shopId === currentShop.id);
+            
+            // 按日期筛选
+            if (filterDate) {
+                shopCheckins = shopCheckins.filter(c => {
+                    const checkinDate = new Date(c.timestamp).toISOString().split('T')[0];
+                    return checkinDate === filterDate;
+                });
+            }
+            
+            // 按时间倒序
+            shopCheckins.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            const container = document.getElementById('shopCheckinList');
+            
+            if (shopCheckins.length === 0) {
+                container.innerHTML = '<p class="empty-text">暂无打卡记录</p>';
+                return;
+            }
+            
+            container.innerHTML = shopCheckins.map(checkin => {
+                const date = new Date(checkin.timestamp);
+                const timeStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                
+                let statusBadge = '';
+                let actionButtons = '';
+                
+                if (checkin.status === 'pending') {
+                    statusBadge = '<span class="status-badge status-pending">待审核</span>';
+                    actionButtons = `
+                        <button class="btn-small btn-approve" onclick="approveCheckin('${checkin.id}')">通过</button>
+                        <button class="btn-small btn-reject" onclick="rejectCheckin('${checkin.id}')">拒绝</button>
+                    `;
+                } else if (checkin.status === 'approved') {
+                    statusBadge = '<span class="status-badge status-approved">已通过</span>';
+                } else {
+                    statusBadge = '<span class="status-badge status-rejected">已拒绝</span>';
+                }
+                
+                return `
+                    <div class="checkin-item">
+                        <img src="${checkin.photo}" class="checkin-photo" onclick="viewImage('${checkin.photo}')">
+                        <div class="checkin-info">
+                            <div class="checkin-user">用户${checkin.userId.slice(-4)} ${statusBadge}</div>
+                            <div class="checkin-time">${timeStr}</div>
+                            ${checkin.note ? `<div class="checkin-note">${checkin.note}</div>` : ''}
+                        </div>
+                        <div class="checkin-actions">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 渲染时段统计图表
+        function renderHourlyChart() {
+            const currentShop = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_SHOP));
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            
+            const today = new Date().toDateString();
+            const todayCheckins = checkins.filter(c => {
+                const checkinDate = new Date(c.timestamp).toDateString();
+                return c.shopId === currentShop.id && checkinDate === today;
+            });
+            
+            // 按小时统计
+            const hourlyData = new Array(12).fill(0);
+            const startHour = 10; // 从10点开始
+            
+            todayCheckins.forEach(c => {
+                const hour = new Date(c.timestamp).getHours();
+                if (hour >= startHour && hour < startHour + 12) {
+                    hourlyData[hour - startHour]++;
+                }
+            });
+            
+            const maxValue = Math.max(...hourlyData, 1);
+            const chartContainer = document.getElementById('hourlyChart');
+            
+            chartContainer.innerHTML = hourlyData.map((count, index) => {
+                const hour = startHour + index;
+                const height = (count / maxValue) * 100;
+                return `
+                    <div class="hour-bar" style="height: ${Math.max(height, 4)}%">
+                        ${count > 0 ? `<span class="hour-value">${count}</span>` : ''}
+                        <span class="hour-label">${hour}:00</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 审核通过
+        function approveCheckin(checkinId) {
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const checkin = checkins.find(c => c.id === checkinId);
+            if (checkin) {
+                checkin.status = 'approved';
+                localStorage.setItem(STORAGE_KEYS.CHECKINS, JSON.stringify(checkins));
+                loadShopCheckins();
+                updateShopStats();
+                renderHourlyChart();
+            }
+        }
+
+        // 审核拒绝
+        function rejectCheckin(checkinId) {
+            if (!confirm('确定要拒绝这条打卡记录吗？')) return;
+            
+            const checkins = getData(STORAGE_KEYS.CHECKINS);
+            const checkin = checkins.find(c => c.id === checkinId);
+            if (checkin) {
+                checkin.status = 'rejected';
+                localStorage.setItem(STORAGE_KEYS.CHECKINS, JSON.stringify(checkins));
+                loadShopCheckins();
+                updateShopStats();
+            }
+        }
+
+        // 查看图片
+        function viewImage(src) {
+            document.getElementById('modalImage').src = src;
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        // 关闭图片模态框
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.remove('active');
+        }
+
+        // 退出登录
+        function shopLogout() {
+            localStorage.removeItem(STORAGE_KEYS.CURRENT_SHOP);
+            location.reload();
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>

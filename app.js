@@ -360,9 +360,20 @@ function viewImage(src) {
     document.body.appendChild(modal);
 }
 
+// 加载主题
+function loadTheme() {
+    const theme = JSON.parse(localStorage.getItem('stamp_theme') || '{}');
+    if (theme.primary) {
+        document.documentElement.style.setProperty('--primary-color', theme.primary);
+        document.documentElement.style.setProperty('--primary-dark', theme.primaryDark);
+        document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+    }
+}
+
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
     initData();
+    loadTheme();
     
     // 更新用户名显示
     const user = getUser();
